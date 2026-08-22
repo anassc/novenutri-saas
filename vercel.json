@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "novenutri",
   "cleanUrls": true,
   "routes": [
     {
