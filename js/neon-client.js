@@ -10,212 +10,15 @@ class NeonClient {
   }
 
   initDatabase() {
-    // Initialize Nutricionistas Table
     if (!localStorage.getItem(CONFIG.USERS_STORAGE_KEY)) {
-      const defaultUsers = [
-        CONFIG.DEMO_NUTRICIONISTA,
-        {
-          id: 'e11aa20c-48bb-4271-b456-0e02b2c3d999',
-          nome: 'Dra. Mariana Silva',
-          email: 'mariana.nutri@exemplo.com',
-          created_at: new Date().toISOString()
-        }
-      ];
-      localStorage.setItem(CONFIG.USERS_STORAGE_KEY, JSON.stringify(defaultUsers));
+      localStorage.setItem(CONFIG.USERS_STORAGE_KEY, JSON.stringify([]));
     }
-
-    // Initialize Pacientes Table
     if (!localStorage.getItem(CONFIG.PATIENTS_STORAGE_KEY)) {
-      this.seedDefaultPatients(CONFIG.DEMO_NUTRICIONISTA.id);
+      localStorage.setItem(CONFIG.PATIENTS_STORAGE_KEY, JSON.stringify([]));
     }
-
-    // Initialize Consultas Table
     if (!localStorage.getItem(CONFIG.CONSULTATIONS_STORAGE_KEY)) {
-      this.seedDefaultConsultations();
+      localStorage.setItem(CONFIG.CONSULTATIONS_STORAGE_KEY, JSON.stringify([]));
     }
-  }
-
-  seedDefaultPatients(nutricionistaId) {
-    const allPacientes = JSON.parse(localStorage.getItem(CONFIG.PATIENTS_STORAGE_KEY) || '[]');
-    
-    // Check if this nutritionist already has patients
-    const existing = allPacientes.filter(p => p.nutricionista_id === nutricionistaId);
-    if (existing.length > 0) return allPacientes;
-
-    const samplePatients = [
-      {
-        id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        nutricionista_id: nutricionistaId,
-        nome: 'Juliana Fernandes',
-        email: 'juliana.f@gmail.com',
-        whatsapp: '(11) 98765-4321',
-        data_nascimento: '1992-05-14',
-        sexo: 'Feminino',
-        peso_inicial: 68.5,
-        altura: 1.65,
-        objetivos: ['Emagrecimento', 'Hipertrofia'],
-        objetivo_texto: 'Perder 5kg de gordura e ganhar massa magra',
-        nivel_atividade: 'Moderado',
-        patologias: [],
-        restricoes_alimentares: ['Lactose'],
-        alergias: ['Amendoim'],
-        medicamentos: 'Nenhum',
-        suplementos: 'Whey Protein, Creatina',
-        refeicoes_por_dia: 4,
-        horario_acorda: '06:30',
-        horario_dorme: '22:30',
-        litros_agua: 2.5,
-        atividade_fisica: true,
-        atividade_fisica_descricao: 'Musculação 4x na semana',
-        observacoes: 'Paciente motivada, sem queixas gastrointestinais.',
-        created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
-        nutricionista_id: nutricionistaId,
-        nome: 'Carlos Eduardo Santos',
-        email: 'carlos.santos@hotmail.com',
-        whatsapp: '(11) 97123-8899',
-        data_nascimento: '1985-11-20',
-        sexo: 'Masculino',
-        peso_inicial: 84.0,
-        altura: 1.78,
-        objetivos: ['Reeducação Alimentar', 'Saúde Cardiovascular'],
-        objetivo_texto: 'Melhorar perfil lipídico e controlar ansiedade',
-        nivel_atividade: 'Leve',
-        patologias: ['Dislipidemia'],
-        restricoes_alimentares: [],
-        alergias: [],
-        medicamentos: 'Sinvastatina',
-        suplementos: 'Omega 3',
-        refeicoes_por_dia: 5,
-        horario_acorda: '07:00',
-        horario_dorme: '23:00',
-        litros_agua: 3.0,
-        atividade_fisica: true,
-        atividade_fisica_descricao: 'Caminhada 3x na semana',
-        observacoes: 'Dificuldade em manter rotina nos finais de semana.',
-        created_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
-        nutricionista_id: nutricionistaId,
-        nome: 'Beatriz Lima Ribeiro',
-        email: 'beatriz.ribeiro@outlook.com',
-        whatsapp: '(11) 96543-2100',
-        data_nascimento: '1998-03-08',
-        sexo: 'Feminino',
-        peso_inicial: 61.0,
-        altura: 1.60,
-        objetivos: ['Emagrecimento'],
-        objetivo_texto: 'Manutenção de peso e rotina saudável',
-        nivel_atividade: 'Sedentário',
-        patologias: [],
-        restricoes_alimentares: ['Glúten'],
-        alergias: [],
-        medicamentos: 'Nenhum',
-        suplementos: 'Multivitamínico',
-        refeicoes_por_dia: 3,
-        horario_acorda: '08:00',
-        horario_dorme: '00:00',
-        litros_agua: 1.5,
-        atividade_fisica: false,
-        atividade_fisica_descricao: '',
-        observacoes: 'Não retornou para a consulta de acompanhamento agendada no mês passado.',
-        created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a44',
-        nutricionista_id: nutricionistaId,
-        nome: 'Lucas Gabriel Rocha',
-        email: 'lucas.rocha@gmail.com',
-        whatsapp: '(11) 95555-4433',
-        data_nascimento: '1990-09-12',
-        sexo: 'Masculino',
-        peso_inicial: 92.0,
-        altura: 1.82,
-        objetivos: ['Hipertrofia'],
-        objetivo_texto: 'Ganho de massa muscular com dieta normocalórica',
-        nivel_atividade: 'Intenso',
-        patologias: [],
-        restricoes_alimentares: [],
-        alergias: [],
-        medicamentos: 'Nenhum',
-        suplementos: 'Whey, Creatina, Beta-Alanina',
-        refeicoes_por_dia: 6,
-        horario_acorda: '05:30',
-        horario_dorme: '22:00',
-        litros_agua: 4.0,
-        atividade_fisica: true,
-        atividade_fisica_descricao: 'Crossfit 5x na semana',
-        observacoes: 'Última consulta realizada há 42 dias. Sem retorno agendado.',
-        created_at: new Date(Date.now() - 100 * 24 * 60 * 60 * 1000).toISOString()
-      }
-    ];
-
-    allPacientes.push(...samplePatients);
-    localStorage.setItem(CONFIG.PATIENTS_STORAGE_KEY, JSON.stringify(allPacientes));
-    return allPacientes;
-  }
-
-  seedDefaultConsultations() {
-    const now = new Date();
-    const thisWeekDate1 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).toISOString().split('T')[0];
-    const thisWeekDate2 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 3).toISOString().split('T')[0];
-    const past35Days = new Date(now.getTime() - 35 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const past42Days = new Date(now.getTime() - 42 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-    const sampleConsultations = [
-      {
-        id: 'c2001',
-        paciente_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        data_consulta: thisWeekDate1,
-        peso: 67.2,
-        cintura: 72,
-        quadril: 96,
-        percentual_gordura: 21.5,
-        observacoes: 'Perdeu 1.3kg de gordura. Excelente evolução!',
-        proximo_retorno: new Date(now.getTime() + 25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'c2002',
-        paciente_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
-        data_consulta: thisWeekDate2,
-        peso: 82.5,
-        cintura: 89,
-        quadril: 102,
-        percentual_gordura: 24.0,
-        observacoes: 'Melhora nos exames laboratoriais. Manter o plano alimentar.',
-        proximo_retorno: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'c2003',
-        paciente_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
-        data_consulta: past35Days,
-        peso: 61.0,
-        cintura: 70,
-        quadril: 94,
-        percentual_gordura: 23.0,
-        observacoes: 'Consulta inicial de avaliação.',
-        proximo_retorno: null,
-        created_at: past35Days
-      },
-      {
-        id: 'c2004',
-        paciente_id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a44',
-        data_consulta: past42Days,
-        peso: 92.0,
-        cintura: 86,
-        quadril: 104,
-        percentual_gordura: 16.5,
-        observacoes: 'Avaliação física inicial.',
-        proximo_retorno: null,
-        created_at: past42Days
-      }
-    ];
-    localStorage.setItem(CONFIG.CONSULTATIONS_STORAGE_KEY, JSON.stringify(sampleConsultations));
   }
 
   // --- NEON REAL-TIME DIRECT HTTP SQL EXECUTION ---
@@ -271,9 +74,6 @@ class NeonClient {
     list.push(newNutri);
     localStorage.setItem(CONFIG.USERS_STORAGE_KEY, JSON.stringify(list));
 
-    // Ensure nutritionist gets sample patients so dashboard is never empty
-    this.seedDefaultPatients(newNutri.id);
-
     // Try Real-Time Insert to Neon Database
     this.executeNeonSQL(
       `INSERT INTO nutricionistas (id, nome, email, created_at) VALUES ($1, $2, $3, $4) ON CONFLICT (email) DO NOTHING;`,
@@ -285,16 +85,8 @@ class NeonClient {
 
   // --- PACIENTES OPERATIONS ---
   getPacientesByNutricionista(nutricionistaId) {
-    let allPacientes = JSON.parse(localStorage.getItem(CONFIG.PATIENTS_STORAGE_KEY) || '[]');
-    let userPacientes = allPacientes.filter(p => p.nutricionista_id === nutricionistaId);
-
-    // Auto-seed if user has no patients yet
-    if (userPacientes.length === 0) {
-      allPacientes = this.seedDefaultPatients(nutricionistaId);
-      userPacientes = allPacientes.filter(p => p.nutricionista_id === nutricionistaId);
-    }
-
-    return userPacientes;
+    const allPacientes = JSON.parse(localStorage.getItem(CONFIG.PATIENTS_STORAGE_KEY) || '[]');
+    return allPacientes.filter(p => p.nutricionista_id === nutricionistaId);
   }
 
   getPacienteById(pacienteId) {

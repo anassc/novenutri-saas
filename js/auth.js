@@ -41,17 +41,7 @@ class AuthManager {
         const user = neonDB.findNutricionistaByEmail(email);
 
         if (!user) {
-          // If user doesn't exist in pre-seeded DB, we create an entry if email is valid or return friendly error
-          if (email.includes('@')) {
-            // Auto-register demo account for fluid testing if user enters custom email on login
-            const nameFromEmail = email.split('@')[0];
-            const formattedName = nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1);
-            const newUser = neonDB.addNutricionista(`Dra. ${formattedName}`, email);
-            this.setSession(newUser);
-            return resolve(newUser);
-          } else {
-            return reject('E-mail ou senha incorretos. Por favor, verifique seus dados.');
-          }
+          return reject('E-mail ou senha incorretos. Caso ainda não tenha uma conta, clique em Cadastre-se.');
         }
 
         // Save session to local storage for persistence
