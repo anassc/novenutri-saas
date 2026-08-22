@@ -5,6 +5,10 @@
 .env.test.local
 .env.production.local
 
+# Prompts e documentação interna de desenvolvimento
+_prompts/
+_prompts
+
 # Dependencies
 node_modules/
 npm-debug.log*
@@ -16,6 +20,7 @@ dist/
 build/
 .cache/
 .DS_Store
+.vercel
 *.suo
 *.user
 *.userossc
@@ -27,5 +32,3 @@ thumbs.db
 .idea/
 *.swp
 *.swo
-
-.vercel
