@@ -3,15 +3,13 @@
    ========================================================================== */
 
 const CONFIG = {
-  APP_NAME: 'Feriani Nutri SBM (NoveNutri)',
+  APP_NAME: 'NoveNutri',
   NEON_PROJECT_NAME: 'NoveNutri',
 
-  // Configurações de conexão (carregadas de variáveis de ambiente com fallback seguro)
-  NEON_AUTH_URL: (typeof process !== 'undefined' && process.env?.VITE_NEON_AUTH_URL) || 
-                 (typeof window !== 'undefined' && window.env?.VITE_NEON_AUTH_URL) || '',
-                 
-  NEON_DATA_API_URL: (typeof process !== 'undefined' && process.env?.VITE_NEON_DATA_API_URL) || 
-                     (typeof window !== 'undefined' && window.env?.VITE_NEON_DATA_API_URL) || '',
+  // String de Conexão do Neon PostgreSQL (ex: postgresql://user:pass@ep-xyz.neon.tech/neondb)
+  NEON_CONNECTION_STRING: (typeof process !== 'undefined' && process.env?.VITE_NEON_AUTH_URL) || 
+                          (typeof window !== 'undefined' && window.env?.VITE_NEON_AUTH_URL) || 
+                          localStorage.getItem('novenutri_neon_conn_str') || '',
 
   SESSION_STORAGE_KEY: 'novenutri_active_session',
   USERS_STORAGE_KEY: 'novenutri_db_nutricionistas',

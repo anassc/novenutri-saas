@@ -1,6 +1,7 @@
 /* ==========================================================================
    NoveNutri - Neon Database & Storage Layer Client
    Manages nutricionistas, pacientes, e consultas according to Neon Schema
+   Supports real-time direct SQL execution to Neon PostgreSQL cloud!
    ========================================================================== */
 
 class NeonClient {
@@ -28,7 +29,7 @@ class NeonClient {
       const defaultNutriId = CONFIG.DEMO_NUTRICIONISTA.id;
       const samplePatients = [
         {
-          id: 'p1001-active-1',
+          id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
           nutricionista_id: defaultNutriId,
           nome: 'Juliana Fernandes',
           email: 'juliana.f@gmail.com',
@@ -55,7 +56,7 @@ class NeonClient {
           created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString()
         },
         {
-          id: 'p1002-active-2',
+          id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
           nutricionista_id: defaultNutriId,
           nome: 'Carlos Eduardo Santos',
           email: 'carlos.santos@hotmail.com',
@@ -82,7 +83,7 @@ class NeonClient {
           created_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString()
         },
         {
-          id: 'p1003-no-return-1',
+          id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
           nutricionista_id: defaultNutriId,
           nome: 'Beatriz Lima Ribeiro',
           email: 'beatriz.ribeiro@outlook.com',
@@ -109,7 +110,7 @@ class NeonClient {
           created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
         },
         {
-          id: 'p1004-no-return-2',
+          id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a44',
           nutricionista_id: defaultNutriId,
           nome: 'Lucas Gabriel Rocha',
           email: 'lucas.rocha@gmail.com',
@@ -139,21 +140,18 @@ class NeonClient {
       localStorage.setItem(CONFIG.PATIENTS_STORAGE_KEY, JSON.stringify(samplePatients));
     }
 
-    // Initialize Consultas Table with sample data (including consultations this week and past consultations >30 days ago)
+    // Initialize Consultas Table
     if (!localStorage.getItem(CONFIG.CONSULTATIONS_STORAGE_KEY)) {
       const now = new Date();
-      // Calculate date within current week (e.g. today or yesterday)
       const thisWeekDate1 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).toISOString().split('T')[0];
       const thisWeekDate2 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 3).toISOString().split('T')[0];
-      
-      // Consultations > 30 days ago
       const past35Days = new Date(now.getTime() - 35 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const past42Days = new Date(now.getTime() - 42 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
       const sampleConsultations = [
         {
           id: 'c2001',
-          paciente_id: 'p1001-active-1',
+          paciente_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
           data_consulta: thisWeekDate1,
           peso: 67.2,
           cintura: 72,
@@ -165,7 +163,7 @@ class NeonClient {
         },
         {
           id: 'c2002',
-          paciente_id: 'p1002-active-2',
+          paciente_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
           data_consulta: thisWeekDate2,
           peso: 82.5,
           cintura: 89,
@@ -177,26 +175,26 @@ class NeonClient {
         },
         {
           id: 'c2003',
-          paciente_id: 'p1003-no-return-1',
-          data_consulta: past35Days, // > 30 days ago
+          paciente_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
+          data_consulta: past35Days,
           peso: 61.0,
           cintura: 70,
           quadril: 94,
           percentual_gordura: 23.0,
           observacoes: 'Consulta inicial de avaliação.',
-          proximo_retorno: null, // Sem retorno agendado
+          proximo_retorno: null,
           created_at: past35Days
         },
         {
           id: 'c2004',
-          paciente_id: 'p1004-no-return-2',
-          data_consulta: past42Days, // > 30 days ago
+          paciente_id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a44',
+          data_consulta: past42Days,
           peso: 92.0,
           cintura: 86,
           quadril: 104,
           percentual_gordura: 16.5,
           observacoes: 'Avaliação física inicial.',
-          proximo_retorno: null, // Sem retorno agendado
+          proximo_retorno: null,
           created_at: past42Days
         }
       ];
@@ -204,7 +202,39 @@ class NeonClient {
     }
   }
 
-  // --- NUTRICIONISTAS (AUTH) OPERATONS ---
+  // --- NEON REAL-TIME DIRECT HTTP SQL EXECUTION ---
+  async executeNeonSQL(query, params = []) {
+    const connStr = localStorage.getItem('novenutri_neon_conn_str') || CONFIG.NEON_CONNECTION_STRING;
+    if (!connStr) return null;
+
+    try {
+      let endpoint = connStr;
+      if (!endpoint.startsWith('http')) {
+        const match = connStr.match(/@([^/]+)\/([^?]+)/);
+        if (match) {
+          endpoint = `https://${match[1]}/sql`;
+        }
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${connStr}`
+        },
+        body: JSON.stringify({ query, params })
+      });
+
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (e) {
+      console.warn('Neon Cloud API sync (offline or invalid credentials):', e);
+    }
+    return null;
+  }
+
+  // --- NUTRICIONISTAS (AUTH) OPERATIONS ---
   getNutricionistas() {
     return JSON.parse(localStorage.getItem(CONFIG.USERS_STORAGE_KEY) || '[]');
   }
@@ -224,6 +254,13 @@ class NeonClient {
     };
     list.push(newNutri);
     localStorage.setItem(CONFIG.USERS_STORAGE_KEY, JSON.stringify(list));
+
+    // Try Real-Time Insert to Neon Database
+    this.executeNeonSQL(
+      `INSERT INTO nutricionistas (id, nome, email, created_at) VALUES ($1, $2, $3, $4) ON CONFLICT (email) DO NOTHING;`,
+      [newNutri.id, newNutri.nome, newNutri.email, newNutri.created_at]
+    );
+
     return newNutri;
   }
 
@@ -247,6 +284,13 @@ class NeonClient {
     };
     allPacientes.push(newPaciente);
     localStorage.setItem(CONFIG.PATIENTS_STORAGE_KEY, JSON.stringify(allPacientes));
+
+    // Try Real-Time Insert to Neon Database
+    this.executeNeonSQL(
+      `INSERT INTO pacientes (id, nutricionista_id, nome, email, whatsapp, sexo, peso_inicial, altura, objetivo_texto, nivel_atividade, observacoes, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);`,
+      [newPaciente.id, newPaciente.nutricionista_id, newPaciente.nome, newPaciente.email, newPaciente.whatsapp, newPaciente.sexo, newPaciente.peso_inicial, newPaciente.altura, newPaciente.objetivo_texto, newPaciente.nivel_atividade, newPaciente.observacoes, newPaciente.created_at]
+    );
+
     return newPaciente;
   }
 
@@ -273,28 +317,26 @@ class NeonClient {
     };
     allConsultas.push(newConsulta);
     localStorage.setItem(CONFIG.CONSULTATIONS_STORAGE_KEY, JSON.stringify(allConsultas));
+
+    // Try Real-Time Insert to Neon Database
+    this.executeNeonSQL(
+      `INSERT INTO consultas (id, paciente_id, data_consulta, peso, cintura, quadril, percentual_gordura, observacoes, proximo_retorno, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`,
+      [newConsulta.id, newConsulta.paciente_id, newConsulta.data_consulta, newConsulta.peso, newConsulta.cintura, newConsulta.quadril, newConsulta.percentual_gordura, newConsulta.observacoes, newConsulta.proximo_retorno, newConsulta.created_at]
+    );
+
     return newConsulta;
   }
 
   // --- DASHBOARD REAL-TIME METRICS CALCULATIONS ---
-
-  /**
-   * Card 1: Total de Pacientes Ativos do Nutricionista Logado
-   */
   getTotalPacientesAtivos(nutricionistaId) {
     const pacientes = this.getPacientesByNutricionista(nutricionistaId);
     return pacientes.length;
   }
 
-  /**
-   * Card 2: Consultas da semana atual
-   */
   getConsultasDaSemana(nutricionistaId) {
     const consultas = this.getAllConsultasByNutricionista(nutricionistaId);
     const now = new Date();
-
-    // Calculate start (Monday 00:00:00) and end (Sunday 23:59:59) of current week
-    const currentDay = now.getDay(); // 0 is Sunday, 1 is Monday...
+    const currentDay = now.getDay();
     const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
     
     const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() + distanceToMonday, 0, 0, 0);
@@ -306,10 +348,6 @@ class NeonClient {
     }).length;
   }
 
-  /**
-   * Card 3: Pacientes sem retorno
-   * Lista dos pacientes cuja última consulta foi há mais de 30 dias E não possuem próximo retorno agendado
-   */
   getPacientesSemRetorno(nutricionistaId) {
     const pacientes = this.getPacientesByNutricionista(nutricionistaId);
     const now = new Date();
@@ -319,16 +357,12 @@ class NeonClient {
 
     pacientes.forEach(paciente => {
       const consultas = this.getConsultasByPaciente(paciente.id);
+      if (consultas.length === 0) return;
       
-      if (consultas.length === 0) return; // Se não teve nenhuma consulta ainda, não entra como sem retorno
-      
-      const ultimaConsulta = consultas[0]; // Ordenado pela mais recente
+      const ultimaConsulta = consultas[0];
       const dataUltima = new Date(ultimaConsulta.data_consulta + 'T00:00:00');
-      
-      // Tem mais de 30 dias desde a última consulta?
       const sePassaram30Dias = dataUltima < thirtyDaysAgo;
 
-      // Tem próximo retorno agendado válido no futuro?
       let temProximoRetornoNoFuturo = false;
       if (ultimaConsulta.proximo_retorno) {
         const dataRetorno = new Date(ultimaConsulta.proximo_retorno + 'T00:00:00');
@@ -351,5 +385,4 @@ class NeonClient {
   }
 }
 
-// Global Neon Client Instance
 const neonDB = new NeonClient();
