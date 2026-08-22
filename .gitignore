@@ -1,34 +1,33 @@
-# Environment Variables (CRÍTICO: nunca versionar chaves ou segredos)
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Prompts e documentação interna de desenvolvimento
-_prompts/
-_prompts
-
-# Dependencies
-node_modules/
+# Logs
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Build outputs & Cache
-dist/
-build/
-.cache/
+# Node modules & build
+node_modules
+dist
+dist-ssr
+*.local
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Prompts (exclude per prompt7 rules)
+_prompts
+
+# IDE / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
 .DS_Store
-.vercel
 *.suo
-*.user
-*.userossc
-*.sln.docstates
-thumbs.db
-
-# IDEs & Editors
-.vscode/
-.idea/
-*.swp
-*.swo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
