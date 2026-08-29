@@ -9,6 +9,7 @@ import { Login } from './pages/Login';
 import { Cadastro } from './pages/Cadastro';
 import { Dashboard } from './pages/Dashboard';
 import { Pacientes } from './pages/Pacientes';
+import { NovoPaciente } from './pages/NovoPaciente';
 import { PacientePerfil } from './pages/PacientePerfil';
 
 const queryClient = new QueryClient({
@@ -37,6 +38,7 @@ export const App: React.FC = () => {
               <Route element={<AppLayout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/pacientes" element={<Pacientes />} />
+                <Route path="/pacientes/novo" element={<NovoPaciente />} />
                 <Route path="/pacientes/:id" element={<PacientePerfil />} />
               </Route>
             </Route>

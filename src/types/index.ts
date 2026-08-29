@@ -11,6 +11,7 @@ export interface Paciente {
   nome: string;
   data_nascimento?: string | null;
   sexo?: string | null;
+  telefone?: string | null;
   whatsapp?: string | null;
   email?: string | null;
   peso_inicial?: number | null;
@@ -30,6 +31,7 @@ export interface Paciente {
   atividade_fisica?: boolean | null;
   atividade_fisica_descricao?: string | null;
   observacoes?: string | null;
+  ultima_consulta?: string | null;
   created_at: string;
 }
 

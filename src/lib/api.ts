@@ -23,7 +23,12 @@ async function dataApiFetch<T>(
   if (!response.ok) {
     const errorText = await response.text();
     console.error(`Data API error (${response.status}):`, errorText);
-    throw new Error(`Data API request failed: ${response.statusText}`);
+    let msg = errorText;
+    try {
+      const parsed = JSON.parse(errorText);
+      msg = parsed.message || parsed.hint || parsed.details || errorText;
+    } catch {}
+    throw new Error(msg || `Data API request failed: ${response.status}`);
   }
 
   const contentType = response.headers.get('content-type');
@@ -160,12 +165,96 @@ export async function getPacientesSemRetornoList(token?: string): Promise<Pacien
 // 3. Pacientes Management
 export async function getPacientesList(token?: string): Promise<Paciente[]> {
   try {
-    const data = await dataApiFetch<Paciente[]>('/pacientes?select=*&order=created_at.desc', { method: 'GET' }, token);
-    return Array.isArray(data) ? data : [];
+    const [pacientes, consultas] = await Promise.all([
+      dataApiFetch<Paciente[]>('/pacientes?select=*&order=created_at.desc', { method: 'GET' }, token),
+      dataApiFetch<Consulta[]>('/consultas?select=paciente_id,data_consulta&order=data_consulta.desc', { method: 'GET' }, token).catch(() => [] as Consulta[]),
+    ]);
+
+    if (!Array.isArray(pacientes)) return [];
+
+    const consultasMap = new Map<string, string>();
+    if (Array.isArray(consultas)) {
+      for (const c of consultas) {
+        if (!consultasMap.has(c.paciente_id)) {
+          consultasMap.set(c.paciente_id, c.data_consulta);
+        }
+      }
+    }
+
+    return pacientes.map((p) => ({
+      ...p,
+      ultima_consulta: consultasMap.get(p.id) || null,
+    }));
   } catch (error) {
     console.error('Error fetching pacientes list:', error);
     return [];
   }
+}
+
+export async function createPaciente(paciente: Partial<Paciente>, token?: string): Promise<Paciente> {
+  try {
+    const data = await dataApiFetch<Paciente[]>(
+      '/pacientes',
+      {
+        method: 'POST',
+        body: JSON.stringify(paciente),
+      },
+      token
+    );
+    return Array.isArray(data) ? data[0] : (data as unknown as Paciente);
+  } catch (error: any) {
+    if (error?.message?.includes('telefone') && 'telefone' in paciente) {
+      const { telefone, ...rest } = paciente;
+      const data = await dataApiFetch<Paciente[]>(
+        '/pacientes',
+        {
+          method: 'POST',
+          body: JSON.stringify(rest),
+        },
+        token
+      );
+      return Array.isArray(data) ? data[0] : (data as unknown as Paciente);
+    }
+    throw error;
+  }
+}
+
+export async function updatePaciente(id: string, paciente: Partial<Paciente>, token?: string): Promise<Paciente> {
+  try {
+    const data = await dataApiFetch<Paciente[]>(
+      `/pacientes?id=eq.${id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(paciente),
+      },
+      token
+    );
+    return Array.isArray(data) ? data[0] : (data as unknown as Paciente);
+  } catch (error: any) {
+    if (error?.message?.includes('telefone') && 'telefone' in paciente) {
+      const { telefone, ...rest } = paciente;
+      const data = await dataApiFetch<Paciente[]>(
+        `/pacientes?id=eq.${id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify(rest),
+        },
+        token
+      );
+      return Array.isArray(data) ? data[0] : (data as unknown as Paciente);
+    }
+    throw error;
+  }
+}
+
+export async function deletePaciente(id: string, token?: string): Promise<void> {
+  await dataApiFetch<void>(
+    `/pacientes?id=eq.${id}`,
+    {
+      method: 'DELETE',
+    },
+    token
+  );
 }
 
 export async function getPacienteDetails(id: string, token?: string): Promise<{ paciente: Paciente | null; consultas: Consulta[] }> {
@@ -185,3 +274,27 @@ export async function getPacienteDetails(id: string, token?: string): Promise<{ 
     return { paciente: null, consultas: [] };
   }
 }
+
+// 4. Consultas Management
+export async function createConsulta(consulta: Partial<Consulta>, token?: string): Promise<Consulta> {
+  const data = await dataApiFetch<Consulta[]>(
+    '/consultas',
+    {
+      method: 'POST',
+      body: JSON.stringify(consulta),
+    },
+    token
+  );
+  return Array.isArray(data) ? data[0] : (data as unknown as Consulta);
+}
+
+export async function deleteConsulta(id: string, token?: string): Promise<void> {
+  await dataApiFetch<void>(
+    `/consultas?id=eq.${id}`,
+    {
+      method: 'DELETE',
+    },
+    token
+  );
+}
+

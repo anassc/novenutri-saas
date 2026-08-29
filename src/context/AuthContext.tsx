@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { authClient } from '../lib/auth';
+import React, { createContext, useEffect, useState } from 'react';
+import { authClient, getJWTToken } from '../lib/auth';
 import { Nutricionista } from '../types';
 import { getNutricionistaProfile, createNutricionistaProfile } from '../lib/api';
 
@@ -27,6 +27,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // Helper to fetch JWT token
+  const fetchValidJWT = async (): Promise<string | null> => {
+    try {
+      const sessionRes = await (authClient as any).getSession?.();
+      if (sessionRes?.data?.session?.token) {
+        return sessionRes.data.session.token;
+      }
+      const token = await getJWTToken();
+      return token;
+    } catch {
+      return null;
+    }
+  };
+
   // Restore session on mount
   useEffect(() => {
     const initSession = async () => {
@@ -34,36 +48,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(true);
         // Call authClient to get current session
         const sessionRes = await (authClient as any).getSession?.();
-        if (sessionRes?.data?.session) {
+        if (sessionRes?.data?.session && sessionRes?.data?.user) {
           const sessionUser = sessionRes.data.user;
-          const token = sessionRes.data.session.token || sessionRes.data.session.id;
-          
-          setUser({
+          const token = sessionRes.data.session.token || (await fetchValidJWT());
+
+          const userObj: User = {
             id: sessionUser.id,
             email: sessionUser.email,
-            name: sessionUser.name,
-          });
-          setSessionToken(token);
+            name: sessionUser.name || sessionUser.email.split('@')[0],
+          };
 
-          // Fetch nutricionista profile
-          const profile = await getNutricionistaProfile(sessionUser.id, token);
+          setUser(userObj);
+          setSessionToken(token);
+          localStorage.setItem('novenutri_user', JSON.stringify(userObj));
+          if (token) localStorage.setItem('novenutri_token', token);
+
+          // Fetch nutricionista profile from DB
+          const profile = await getNutricionistaProfile(sessionUser.id, token || undefined);
           setNutricionista(
             profile || {
               id: sessionUser.id,
-              nome: sessionUser.name || 'Nutricionista',
+              nome: userObj.name || 'Nutricionista',
               email: sessionUser.email,
               created_at: new Date().toISOString(),
             }
           );
         } else {
-          // Check local storage fallback for demo/persistent session state if needed
+          // Check local storage fallback
           const storedUser = localStorage.getItem('novenutri_user');
           const storedToken = localStorage.getItem('novenutri_token');
-          if (storedUser && storedToken) {
+          if (storedUser) {
             const parsedUser = JSON.parse(storedUser);
             setUser(parsedUser);
             setSessionToken(storedToken);
-            const profile = await getNutricionistaProfile(parsedUser.id, storedToken);
+            const profile = await getNutricionistaProfile(parsedUser.id, storedToken || undefined);
             setNutricionista(
               profile || {
                 id: parsedUser.id,
@@ -99,8 +117,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
       }
 
-      const userData = res?.data?.user || { id: res?.data?.session?.userId || 'usr_' + Date.now(), email };
-      const token = res?.data?.session?.token || res?.data?.session?.id || 'token_' + Date.now();
+      const sessionRes = await (authClient as any).getSession?.();
+      const jwtToken = sessionRes?.data?.session?.token || (await fetchValidJWT()) || res?.data?.token;
+      const userData = res?.data?.user || sessionRes?.data?.user || { id: 'usr_' + Date.now(), email };
 
       const userObj = {
         id: userData.id,
@@ -109,12 +128,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       setUser(userObj);
-      setSessionToken(token);
+      setSessionToken(jwtToken);
 
       localStorage.setItem('novenutri_user', JSON.stringify(userObj));
-      localStorage.setItem('novenutri_token', token);
+      if (jwtToken) localStorage.setItem('novenutri_token', jwtToken);
 
-      const profile = await getNutricionistaProfile(userData.id, token);
+      const profile = await getNutricionistaProfile(userData.id, jwtToken || undefined);
       setNutricionista(
         profile || {
           id: userData.id,
@@ -127,9 +146,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: true };
     } catch (err: any) {
       console.error('Login error:', err);
+      const msg = err?.message || '';
+      let userFriendlyError = 'Email ou senha incorretos.';
+      if (msg.includes('Invalid') || msg.includes('password') || msg.includes('credential')) {
+        userFriendlyError = 'Email ou senha incorretos.';
+      } else if (msg.includes('User not found')) {
+        userFriendlyError = 'Conta não encontrada. Cadastre-se primeiro.';
+      }
       return {
         success: false,
-        error: 'Email ou senha incorretos.',
+        error: userFriendlyError,
       };
     } finally {
       setIsLoading(false);
@@ -148,25 +174,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (res?.error) {
-        if (res.error.message?.includes('already exists') || res.error.status === 422) {
-          return { success: false, error: 'Este email já está cadastrado.' };
+        const errorMsg = res.error.message || '';
+        if (errorMsg.includes('already exists') || res.error.status === 422) {
+          return { success: false, error: 'Este email já está cadastrado. Faça login ou use outro email.' };
         }
         return { success: false, error: res.error.message || 'Não foi possível criar sua conta. Tente novamente.' };
       }
 
-      const userId = res?.data?.user?.id || 'usr_' + Date.now();
-      const token = res?.data?.session?.token || res?.data?.session?.id || 'token_' + Date.now();
+      // 2. Fetch session and JWT
+      const sessionRes = await (authClient as any).getSession?.();
+      const jwtToken = sessionRes?.data?.session?.token || (await fetchValidJWT()) || res?.data?.token;
+      const userId = res?.data?.user?.id || sessionRes?.data?.user?.id || 'usr_' + Date.now();
 
       const userObj = { id: userId, email, name: nome };
       setUser(userObj);
-      setSessionToken(token);
+      setSessionToken(jwtToken);
 
       localStorage.setItem('novenutri_user', JSON.stringify(userObj));
-      localStorage.setItem('novenutri_token', token);
+      if (jwtToken) localStorage.setItem('novenutri_token', jwtToken);
 
-      // 2. Create profile in `nutricionistas` table (without password!)
+      // 3. Create profile in `nutricionistas` table in database
       try {
-        const profile = await createNutricionistaProfile({ id: userId, nome, email }, token);
+        const profile = await createNutricionistaProfile({ id: userId, nome, email }, jwtToken || undefined);
         setNutricionista(profile);
       } catch (dbErr) {
         console.warn('Profile creation in DB warn:', dbErr);
@@ -181,9 +210,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: true };
     } catch (err: any) {
       console.error('Signup error:', err);
+      const msg = err?.message || '';
+      let userFriendlyError = 'Não foi possível criar sua conta. Tente novamente.';
+      if (msg.includes('already exists') || err?.status === 422) {
+        userFriendlyError = 'Este email já está cadastrado. Faça login ou use outro email.';
+      } else if (msg.includes('Password') || msg.includes('password')) {
+        userFriendlyError = 'A senha precisa ter pelo menos 6 caracteres.';
+      } else if (msg) {
+        userFriendlyError = msg;
+      }
       return {
         success: false,
-        error: 'Não foi possível criar sua conta. Tente novamente.',
+        error: userFriendlyError,
       };
     } finally {
       setIsLoading(false);
@@ -223,10 +261,5 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export { AuthContext };
+
