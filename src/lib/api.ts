@@ -1,4 +1,4 @@
-import { Nutricionista, Paciente, Consulta, PacienteSemRetorno } from '../types';
+import { Nutricionista, Paciente, Consulta, PacienteSemRetorno, PlanoAlimentar } from '../types';
 
 const DATA_API_URL = import.meta.env.VITE_NEON_DATA_API_URL || '';
 
@@ -257,21 +257,26 @@ export async function deletePaciente(id: string, token?: string): Promise<void> 
   );
 }
 
-export async function getPacienteDetails(id: string, token?: string): Promise<{ paciente: Paciente | null; consultas: Consulta[] }> {
+export async function getPacienteDetails(
+  id: string,
+  token?: string
+): Promise<{ paciente: Paciente | null; consultas: Consulta[]; planos: PlanoAlimentar[] }> {
   try {
-    const [pacientes, consultas] = await Promise.all([
+    const [pacientes, consultas, planos] = await Promise.all([
       dataApiFetch<Paciente[]>(`/pacientes?id=eq.${id}&select=*`, { method: 'GET' }, token),
       dataApiFetch<Consulta[]>(`/consultas?paciente_id=eq.${id}&select=*&order=data_consulta.desc`, { method: 'GET' }, token),
+      dataApiFetch<PlanoAlimentar[]>(`/planos_alimentares?paciente_id=eq.${id}&select=*&order=created_at.desc`, { method: 'GET' }, token).catch(() => [] as PlanoAlimentar[]),
     ]);
 
     const paciente = Array.isArray(pacientes) && pacientes.length > 0 ? pacientes[0] : null;
     return {
       paciente,
       consultas: Array.isArray(consultas) ? consultas : [],
+      planos: Array.isArray(planos) ? planos : [],
     };
   } catch (error) {
     console.error('Error fetching paciente details:', error);
-    return { paciente: null, consultas: [] };
+    return { paciente: null, consultas: [], planos: [] };
   }
 }
 
