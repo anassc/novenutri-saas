@@ -99,9 +99,17 @@ export const Login: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
-                Senha
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+                  Senha
+                </label>
+                <Link
+                  to="/recuperar-senha"
+                  className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
+                >
+                  Esqueceu a senha?
+                </Link>
+              </div>
               <div className="relative rounded-lg shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                   <Lock className="w-4 h-4" />

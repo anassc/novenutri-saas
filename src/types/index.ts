@@ -48,12 +48,30 @@ export interface Consulta {
   created_at: string;
 }
 
+export interface Refeicoes {
+  cafe_da_manha: string[];
+  lanche_manha: string[];
+  almoco: string[];
+  lanche_tarde: string[];
+  jantar: string[];
+}
+
+export interface DiaPlano {
+  dia: string;
+  refeicoes: Refeicoes;
+}
+
+export interface PlanoSemanalData {
+  plano_semanal: DiaPlano[];
+}
+
 export interface PlanoAlimentar {
   id: string;
   paciente_id: string;
-  conteudo: Record<string, any>;
+  conteudo: PlanoSemanalData | Record<string, any>;
   created_at: string;
 }
+
 
 export interface PacienteSemRetorno {
   id: string;

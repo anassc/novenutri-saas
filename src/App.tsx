@@ -7,10 +7,13 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { AppLayout } from './components/Layout/AppLayout';
 import { Login } from './pages/Login';
 import { Cadastro } from './pages/Cadastro';
+import { RecuperarSenha } from './pages/RecuperarSenha';
+import { RedefinirSenha } from './pages/RedefinirSenha';
 import { Dashboard } from './pages/Dashboard';
 import { Pacientes } from './pages/Pacientes';
 import { NovoPaciente } from './pages/NovoPaciente';
 import { PacientePerfil } from './pages/PacientePerfil';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,11 +29,14 @@ export const App: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
+          <PWAInstallPrompt />
           <Routes>
             {/* Public Routes (Redirect to /dashboard if logged in) */}
             <Route element={<PublicRoute />}>
               <Route path="/login" element={<Login />} />
               <Route path="/cadastro" element={<Cadastro />} />
+              <Route path="/recuperar-senha" element={<RecuperarSenha />} />
+              <Route path="/redefinir-senha" element={<RedefinirSenha />} />
             </Route>
 
             {/* Protected Routes (Redirect to /login if not logged in) */}

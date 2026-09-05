@@ -1,4 +1,4 @@
-import { Nutricionista, Paciente, Consulta, PacienteSemRetorno, PlanoAlimentar } from '../types';
+import { Nutricionista, Paciente, Consulta, PacienteSemRetorno, PlanoAlimentar, PlanoSemanalData } from '../types';
 
 const DATA_API_URL = import.meta.env.VITE_NEON_DATA_API_URL || '';
 
@@ -302,4 +302,117 @@ export async function deleteConsulta(id: string, token?: string): Promise<void> 
     token
   );
 }
+
+// 5. Planos Alimentares Management & IA Generation
+export async function gerarPlanoAlimentarIA(
+  paciente: Paciente
+): Promise<{ success: boolean; data?: PlanoSemanalData; error?: string }> {
+  try {
+    const response = await fetch('/api/gerar-plano', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ paciente }),
+    });
+
+    const resData = await response.json();
+
+    if (!response.ok || resData.error) {
+      return {
+        success: false,
+        error: resData.error || 'Erro ao gerar plano alimentar com IA.',
+      };
+    }
+
+    return {
+      success: true,
+      data: resData as PlanoSemanalData,
+    };
+  } catch (err: any) {
+    console.error('API /api/gerar-plano call failed:', err);
+    return {
+      success: false,
+      error: err?.message || 'Falha na conexão com o serviço de IA.',
+    };
+  }
+}
+
+export function gerarPlanoAlimentarManual(paciente: Paciente): PlanoSemanalData {
+  const isZeroLactose =
+    paciente.restricoes_alimentares?.some((r) => r.toLowerCase().includes('lactose')) ||
+    paciente.alergias?.some((a) => a.toLowerCase().includes('leite'));
+  const isSemGluten =
+    paciente.restricoes_alimentares?.some((r) => r.toLowerCase().includes('glúten') || r.toLowerCase().includes('gluten')) ||
+    paciente.alergias?.some((a) => a.toLowerCase().includes('trigo'));
+
+  const milkOption = isZeroLactose ? 'Bebida vegetal de aveia ou amêndoa (200ml)' : 'Leite desnatado ou semidesnatado (200ml)';
+  const breadOption = isSemGluten ? 'Pão sem glúten tostado com azeite' : 'Pão integral tostado com queijo cottage';
+  const tapiocaOption = 'Tapioca recheada com ovos mexidos e orégano';
+
+  const dias = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
+
+  const plano_semanal = dias.map((dia) => ({
+    dia,
+    refeicoes: {
+      cafe_da_manha: [
+        `${milkOption} com café sem açúcar`,
+        `${breadOption}`,
+        `${tapiocaOption}`,
+        'Ovos mexidos (2 unidades) com pitada de açafrão',
+        'Mamão papaia (1/2 unidade) com aveia em flocos',
+      ],
+      lanche_manha: [
+        'Maçã verde com punhado de castanha-do-pará (2 un)',
+        'Iogurte natural (zero lactose se necessário) com chia',
+        'Banana prata polvilhada com canela em pó',
+        'Mix de nozes e amêndoas (30g)',
+        'Suco verde funcional (couve, limão, gengibre e maçã)',
+      ],
+      almoco: [
+        'Arroz integral (4 col de sopa) e Feijão carioca (1 concha)',
+        'Peito de frango grelhado (130g) temperado com ervas',
+        'Salada de folhas verdes, tomate e cenoura ralada à vontade',
+        'Legumes no vapor (brócolis, abobrinha e chuchu)',
+        'Azeite de oliva extra virgem (1 col de sobremesa) para temperar',
+      ],
+      lanche_tarde: [
+        'Vitamina de banana com morango e farelo de aveia',
+        'Crepioca recheada com frango desfiado e ricota',
+        'Panqueca de banana rápida (1 ovo + 1 banana + aveia)',
+        'Cuscuz nordestino temperado com queijo branco (ou tofu)',
+        'Castanha de caju (20g) + chá verde gelado',
+      ],
+      jantar: [
+        'Filé de tilápia assado com limão e alecrim (140g)',
+        'Purê de mandioca ou batata-doce (3 col de sopa)',
+        'Salada colorida de alface roxa, pepino e palmito',
+        'Sopa cremosa de legumes com carne magra desfiada',
+        'Omelete de 2 ovos com espinafre e tomate picado',
+      ],
+    },
+  }));
+
+  return { plano_semanal };
+}
+
+export async function salvarPlanoAlimentar(
+  paciente_id: string,
+  conteudo: PlanoSemanalData,
+  token?: string
+): Promise<PlanoAlimentar> {
+  const data = await dataApiFetch<PlanoAlimentar[]>(
+    '/planos_alimentares',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        paciente_id,
+        conteudo,
+      }),
+    },
+    token
+  );
+  return Array.isArray(data) ? data[0] : (data as unknown as PlanoAlimentar);
+}
+
 
