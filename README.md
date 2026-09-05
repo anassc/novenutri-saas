@@ -242,7 +242,7 @@ This workflow allowed the development process to focus heavily on domain logic a
    Open `http://localhost:3000` in your browser.
 
 ---
-
 ### License
 
 Distributed under the MIT License.
+
